@@ -1,0 +1,27 @@
+class LRUCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.cache = {}
+        self.order = []  # 维护访问顺序
+
+    def refer(self, page):
+        if page in self.cache:
+            # 已存在则移动到队列尾部
+            self.order.remove(page)
+            self.order.append(page)
+        else:
+            # 页面缺失处理
+            if len(self.order) >= self.capacity:
+                # 移除最久未使用的页面
+                lru_page = self.order.pop(0)
+                del self.cache[lru_page]
+            self.cache[page] = True
+            self.order.append(page)
+        print(f"访问页面 {page} → 当前缓存: {self.order}")
+
+# 测试用例
+print("LRU算法模拟（缓存容量=3）")
+lru = LRUCache(3)
+pages = [1, 2, 3, 4, 3, 1, 5]
+for p in pages:
+    lru.refer(p)

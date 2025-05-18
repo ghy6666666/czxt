@@ -1,0 +1,64 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/shm.h>
+#include <sys/wait.h>
+
+#define SHM_SIZE 1024
+
+// 管道通信示例
+void pipe_example() {
+    int fd[2];
+    char msg[] = "Hello from pipe!";
+    char buf[100];
+    
+    if (pipe(fd) == -1) {
+        perror("pipe创建失败");
+        exit(1);
+    }
+    
+    if (fork() == 0) { // 子进程写管道
+        close(fd[0]);
+        write(fd[1], msg, sizeof(msg));
+        close(fd[1]);
+        exit(0);
+    } else {           // 父进程读管道
+        close(fd[1]);
+        read(fd[0], buf, sizeof(buf));
+        printf("收到管道消息: %s\n", buf);
+        close(fd[0]);
+        wait(NULL);
+    }
+}
+
+// 共享内存示例
+void shm_example() {
+    int shmid = shmget(IPC_PRIVATE, SHM_SIZE, IPC_CREAT | 0666);
+    if (shmid == -1) {
+        perror("共享内存创建失败");
+        exit(1);
+    }
+    
+    char* ptr = (char*)shmat(shmid, NULL, 0);
+    sprintf(ptr, "Hello from shared memory!");
+    
+    if (fork() == 0) { // 子进程读共享内存
+        printf("子进程读取: %s\n", ptr);
+        shmdt(ptr);
+        exit(0);
+    } else {           // 父进程等待并清理
+        wait(NULL);
+        shmdt(ptr);
+        shmctl(shmid, IPC_RMID, NULL);
+    }
+}
+
+int main() {
+    printf("----- 管道通信 -----\n");
+    pipe_example();
+    
+    printf("\n----- 共享内存通信 -----\n");
+    shm_example();
+    
+    return 0;
+}
